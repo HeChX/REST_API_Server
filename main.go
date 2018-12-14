@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Howlyao/Server/service"
+	"github.com/Howlyao/REST_API_Server/service"
 )
 
 func main() {

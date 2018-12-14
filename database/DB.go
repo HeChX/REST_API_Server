@@ -20,46 +20,40 @@ func GetDB() *MyDB {
 }
 
 func (myDB *MyDB) QueryPeople(strId string) string {
-	db := myDB.db
-	var data string
-
-	db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("People"))
-		v := b.Get([]byte(strId))
-		data = string(v)
-		return nil
-	})
-
-	return data
+	return queryString(myDB, strId, "People")
 
 }
 
 func (myDB *MyDB) QueryFilm(strId string) string {
-	db := myDB.db
-	var data string
-
-	db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Film"))
-		v := b.Get([]byte(strId))
-		data = string(v)
-		return nil
-	})
-
-	return data
+	return queryString(myDB, strId, "Film")
 
 }
 
 func (myDB *MyDB) QueryPlanet(strId string) string {
+	return queryString(myDB, strId, "Planet")
+}
+
+func (myDB *MyDB) QuerySpecies(strId string) string {
+	return queryString(myDB, strId, "Species")
+}
+
+func (myDB *MyDB) QueryStarship(strId string) string {
+	return queryString(myDB, strId, "Starship")
+}
+
+func (myDB *MyDB) QueryVehicle(strId string) string {
+	return queryString(myDB, strId, "Vehicle")
+}
+func queryString(myDB *MyDB, strId string, model string) string {
 	db := myDB.db
 	var data string
 
 	db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("Planet"))
+		b := tx.Bucket([]byte(model))
 		v := b.Get([]byte(strId))
 		data = string(v)
 		return nil
 	})
 
 	return data
-
 }
