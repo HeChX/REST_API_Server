@@ -114,6 +114,30 @@ func ValidateTokenMiddleware(w http.ResponseWriter, r *http.Request, next http.H
 	}
 }
 
+func ValidateToken(w http.ResponseWriter, r *http.Request) bool {
+
+	token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
+
+	var isValid bool
+	if err == nil {
+		if token.Valid {
+			isValid = true
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, "Token is not valid")
+			isValid = false
+		}
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, "Unauthorized access to this resource")
+		isValid = false
+	}
+	return isValid
+}
+
 func JsonResponse(response interface{}, w http.ResponseWriter) {
 
 	json, err := json.Marshal(response)
@@ -128,58 +152,80 @@ func JsonResponse(response interface{}, w http.ResponseWriter) {
 }
 
 func queryPeople(w http.ResponseWriter, r *http.Request) {
-	myDB := database.GetDB()
-	vars := mux.Vars(r)
-	id := vars["id"]
-	// fmt.Println(myDB.DB_v)
-	// people := model.Peoples{
-	// 	model.People{Name: "Howl", Height: "177", Mass: "55"},
-	// }
+	if !ValidateToken(w, r) {
+		myDB := database.GetDB()
+		vars := mux.Vars(r)
+		id := vars["id"]
+		// fmt.Println(myDB.DB_v)
+		// people := model.Peoples{
+		// 	model.People{Name: "Howl", Height: "177", Mass: "55"},
+		// }
 
-	// if err := json.NewEncoder(w).Encode(people); err != nil {
-	// 	panic(err)
-	// }
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, myDB.QueryPeople(id))
+		// if err := json.NewEncoder(w).Encode(people); err != nil {
+		// 	panic(err)
+		// }
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, myDB.QueryPeople(id))
+	}
 
 }
 
 func queryPlanet(w http.ResponseWriter, r *http.Request) {
-	myDB := database.GetDB()
-	vars := mux.Vars(r)
-	id := vars["id"]
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, myDB.QueryPlanet(id))
+	if !ValidateToken(w, r) {
+		myDB := database.GetDB()
+		vars := mux.Vars(r)
+		id := vars["id"]
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, myDB.QueryPlanet(id))
+	}
+}
+
+func qPlanet(w http.ResponseWriter, r *http.Request) {
+	if !ValidateToken(w, r) {
+		myDB := database.GetDB()
+		vars := mux.Vars(r)
+		id := vars["id"]
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, myDB.QueryPlanet(id))
+	}
 }
 
 func queryFilm(w http.ResponseWriter, r *http.Request) {
-	myDB := database.GetDB()
-	vars := mux.Vars(r)
-	id := vars["id"]
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, myDB.QueryFilm(id))
+	if !ValidateToken(w, r) {
+		myDB := database.GetDB()
+		vars := mux.Vars(r)
+		id := vars["id"]
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, myDB.QueryFilm(id))
+	}
 }
 
 func querySpecies(w http.ResponseWriter, r *http.Request) {
-	myDB := database.GetDB()
-	vars := mux.Vars(r)
-	id := vars["id"]
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, myDB.QuerySpecies(id))
+	if !ValidateToken(w, r) {
+		myDB := database.GetDB()
+		vars := mux.Vars(r)
+		id := vars["id"]
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, myDB.QuerySpecies(id))
+	}
 }
 
 func queryStarship(w http.ResponseWriter, r *http.Request) {
-	myDB := database.GetDB()
-	vars := mux.Vars(r)
-	id := vars["id"]
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, myDB.QueryStarship(id))
+	if !ValidateToken(w, r) {
+		myDB := database.GetDB()
+		vars := mux.Vars(r)
+		id := vars["id"]
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, myDB.QueryStarship(id))
+	}
 }
 
 func queryVehicle(w http.ResponseWriter, r *http.Request) {
-	myDB := database.GetDB()
-	vars := mux.Vars(r)
-	id := vars["id"]
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, myDB.QueryVehicle(id))
+	if !ValidateToken(w, r) {
+		myDB := database.GetDB()
+		vars := mux.Vars(r)
+		id := vars["id"]
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, myDB.QueryVehicle(id))
+	}
 }

@@ -12,6 +12,8 @@ type Route struct {
 type Routes []Route
 
 var routes = Routes{
+	Route{Name: "register", Method: "POST", Pattern: "/register", HandlerFunc: registerHandler},
+	Route{Name: "login", Method: "POST", Pattern: "/login", HandlerFunc: loginHandler},
 	Route{Name: "people", Method: "GET", Pattern: "/people/{id}", HandlerFunc: queryPeople},
 	Route{Name: "planets", Method: "GET", Pattern: "/planets/{id}", HandlerFunc: queryPlanet},
 	Route{Name: "films", Method: "GET", Pattern: "/films/{id}", HandlerFunc: queryFilm},
