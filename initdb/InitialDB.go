@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/Howlyao/Server/model"
+	"github.com/HeChX/REST_API_Server/model"
 
 	"github.com/boltdb/bolt"
 )
@@ -182,6 +182,14 @@ func creataBucket() {
 
 	db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists([]byte("Starship"))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+		return nil
+	})
+
+	db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("User"))
 		if err != nil {
 			return fmt.Errorf("create bucket: %s", err)
 		}

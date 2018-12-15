@@ -1,14 +1,131 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 	_ "unsafe"
 
+	"github.com/HeChX/REST_API_Server/database"
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go/request"
 	"github.com/gorilla/mux"
-
-	"github.com/Howlyao/REST_API_Server/database"
 )
+
+const secret = "Howlyao_HeChX_hzh0"
+
+type User struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type Token struct {
+	Token string `json:"token"`
+}
+
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+	var user User
+	err := r.ParseForm()
+
+	if err != nil && r.PostForm["username"] != nil && r.PostForm["password"] != nil {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("register request format is invalid.\n"))
+		return
+	}
+
+	user.Username = r.PostForm["username"][0]
+	user.Password = r.PostForm["password"][0]
+
+	myDB := database.GetDB()
+
+	if myDB.CheckUserIsExist(user.Username) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("User already exists.\n"))
+		return
+	}
+
+	myDB.InsertUser(user.Username, user.Password)
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Registered successfully.\n"))
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	var user User
+	err := r.ParseForm()
+
+	if err != nil && r.PostForm["username"] != nil && r.PostForm["password"] != nil {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("register request format is invalid.\n"))
+		return
+	}
+
+	user.Username = r.PostForm["username"][0]
+	user.Password = r.PostForm["password"][0]
+
+	myDB := database.GetDB()
+
+	if !myDB.CheckUserIsExist(user.Username) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("The user does not exists.\n"))
+		return
+	} else if !myDB.CheckPassword(user.Username, user.Password) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("The password is invalid.\n"))
+		return
+	}
+
+	token := jwt.New(jwt.SigningMethodES256)
+	claims := make(jwt.MapClaims)
+	claims["exp"] = time.Now().Add(time.Hour * time.Duration(1)).Unix()
+	claims["iat"] = time.Now().Unix()
+	token.Claims = claims
+
+	tokenString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, "Error while signing the token")
+		log.Fatal(err)
+	}
+
+	response := Token{tokenString}
+	JsonResponse(response, w)
+}
+
+func ValidateTokenMiddleware(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+
+	token, err := request.ParseFromRequest(r, request.AuthorizationHeaderExtractor,
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
+
+	if err == nil {
+		if token.Valid {
+			next(w, r)
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w, "Token is not valid")
+		}
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, "Unauthorized access to this resource")
+	}
+}
+
+func JsonResponse(response interface{}, w http.ResponseWriter) {
+
+	json, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
 
 func queryPeople(w http.ResponseWriter, r *http.Request) {
 	myDB := database.GetDB()
