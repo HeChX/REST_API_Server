@@ -9,10 +9,10 @@ type Film struct {
 	Release_date  string   `json:"release_date"`
 	Characters    []string `json:"characters"`
 	Planets       []string `json:"planets"`
-	// Starships     []string `json:"starships"`
-	// Vehicles      []string `json:"vehicles"`
-	// Species       []string `json:"species"`
-	// Created       []string `json:"created"`
-	// Edited        []string `json:"edited"`
-	Url string `json:"url"`
+	Starships     []string `json:"starships"`
+	Vehicles      []string `json:"vehicles"`
+	Species       []string `json:"species"`
+	Created       string   `json:"created"`
+	Edited        string   `json:"edited"`
+	Url           string   `json:"url"`
 }
