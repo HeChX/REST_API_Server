@@ -3,18 +3,19 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
 	_ "unsafe"
 
-	"github.com/HeChX/REST_API_Server/database"
+	"github.com/Howlyao/Server/database"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
 	"github.com/gorilla/mux"
 )
 
-const secret = "Howlyao_HeChX_hzh0"
+var secret = "test"
 
 type User struct {
 	Username string `json:"username"`
@@ -27,26 +28,47 @@ type Token struct {
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
+	fmt.Println(r)
 	err := r.ParseForm()
+	fmt.Println(r.PostForm)
 
-	if err != nil && r.PostForm["username"] != nil && r.PostForm["password"] != nil {
+	// var users map[string]interface{}
+	// body, _ := ioutil.ReadAll(r.Body)
+	// json.Unmarshal(body, &users)
+	// fmt.Println("获取json中的username:", users["username"])
+	// fmt.Println("获取json中的password:", users["password"])
+
+	var users map[string]interface{}
+	body, _ := ioutil.ReadAll(r.Body)
+	json.Unmarshal(body, &users)
+	fmt.Println("获取json中的username:", users["username"])
+	fmt.Println("获取json中的password:", users["password"])
+	var username = users["username"].(string)
+	var password = users["password"].(string)
+
+	if err != nil && username != "" && password != "" {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("register request format is invalid.\n"))
 		return
 	}
 
-	user.Username = r.PostForm["username"][0]
-	user.Password = r.PostForm["password"][0]
+	user.Username = username
+	user.Password = password
 
 	myDB := database.GetDB()
 
+	fmt.Println("1..")
+
 	if myDB.CheckUserIsExist(user.Username) {
+		fmt.Println("2..")
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("User already exists.\n"))
 		return
 	}
 
+	fmt.Println("3..")
 	myDB.InsertUser(user.Username, user.Password)
+	fmt.Println("4..")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Registered successfully.\n"))
@@ -56,40 +78,51 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
 	err := r.ParseForm()
 
-	if err != nil && r.PostForm["username"] != nil && r.PostForm["password"] != nil {
+	var users map[string]interface{}
+	body, _ := ioutil.ReadAll(r.Body)
+	json.Unmarshal(body, &users)
+	var username = users["username"].(string)
+	var password = users["password"].(string)
+
+	if err != nil && username != "" && password != "" {
 		w.WriteHeader(http.StatusForbidden)
+		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("register request format is invalid.\n"))
 		return
 	}
 
-	user.Username = r.PostForm["username"][0]
-	user.Password = r.PostForm["password"][0]
+	user.Username = username
+	user.Password = password
 
 	myDB := database.GetDB()
 
 	if !myDB.CheckUserIsExist(user.Username) {
 		w.WriteHeader(http.StatusForbidden)
+		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("The user does not exists.\n"))
 		return
 	} else if !myDB.CheckPassword(user.Username, user.Password) {
 		w.WriteHeader(http.StatusForbidden)
+		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("The password is invalid.\n"))
 		return
 	}
 
-	token := jwt.New(jwt.SigningMethodES256)
+	token := jwt.New(jwt.SigningMethodHS256)
 	claims := make(jwt.MapClaims)
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(1)).Unix()
 	claims["iat"] = time.Now().Unix()
 	token.Claims = claims
 
 	tokenString, err := token.SignedString([]byte(secret))
+	fmt.Println(tokenString)
 	if err != nil {
+		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintln(w, "Error while signing the token")
 		log.Fatal(err)
 	}
-
+	fmt.Println("claims6")
 	response := Token{tokenString}
 	JsonResponse(response, w)
 }
@@ -152,26 +185,26 @@ func JsonResponse(response interface{}, w http.ResponseWriter) {
 }
 
 func queryPeople(w http.ResponseWriter, r *http.Request) {
-	if !ValidateToken(w, r) {
-		myDB := database.GetDB()
-		vars := mux.Vars(r)
-		id := vars["id"]
-		// fmt.Println(myDB.DB_v)
-		// people := model.Peoples{
-		// 	model.People{Name: "Howl", Height: "177", Mass: "55"},
-		// }
+	// if !ValidateToken(w, r) {
+	myDB := database.GetDB()
+	vars := mux.Vars(r)
+	id := vars["id"]
+	// fmt.Println(myDB.DB_v)
+	// people := model.Peoples{
+	// 	model.People{Name: "Howl", Height: "177", Mass: "55"},
+	// }
 
-		// if err := json.NewEncoder(w).Encode(people); err != nil {
-		// 	panic(err)
-		// }
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, myDB.QueryPeople(id))
-	}
+	// if err := json.NewEncoder(w).Encode(people); err != nil {
+	// 	panic(err)
+	// }
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, myDB.QueryPeople(id))
+	// }
 
 }
 
 func queryPlanet(w http.ResponseWriter, r *http.Request) {
-	if !ValidateToken(w, r) {
+	if ValidateToken(w, r) {
 		myDB := database.GetDB()
 		vars := mux.Vars(r)
 		id := vars["id"]
@@ -181,7 +214,7 @@ func queryPlanet(w http.ResponseWriter, r *http.Request) {
 }
 
 func qPlanet(w http.ResponseWriter, r *http.Request) {
-	if !ValidateToken(w, r) {
+	if ValidateToken(w, r) {
 		myDB := database.GetDB()
 		vars := mux.Vars(r)
 		id := vars["id"]
@@ -191,7 +224,7 @@ func qPlanet(w http.ResponseWriter, r *http.Request) {
 }
 
 func queryFilm(w http.ResponseWriter, r *http.Request) {
-	if !ValidateToken(w, r) {
+	if ValidateToken(w, r) {
 		myDB := database.GetDB()
 		vars := mux.Vars(r)
 		id := vars["id"]
@@ -201,7 +234,7 @@ func queryFilm(w http.ResponseWriter, r *http.Request) {
 }
 
 func querySpecies(w http.ResponseWriter, r *http.Request) {
-	if !ValidateToken(w, r) {
+	if ValidateToken(w, r) {
 		myDB := database.GetDB()
 		vars := mux.Vars(r)
 		id := vars["id"]
@@ -211,7 +244,7 @@ func querySpecies(w http.ResponseWriter, r *http.Request) {
 }
 
 func queryStarship(w http.ResponseWriter, r *http.Request) {
-	if !ValidateToken(w, r) {
+	if ValidateToken(w, r) {
 		myDB := database.GetDB()
 		vars := mux.Vars(r)
 		id := vars["id"]
@@ -221,7 +254,7 @@ func queryStarship(w http.ResponseWriter, r *http.Request) {
 }
 
 func queryVehicle(w http.ResponseWriter, r *http.Request) {
-	if !ValidateToken(w, r) {
+	if ValidateToken(w, r) {
 		myDB := database.GetDB()
 		vars := mux.Vars(r)
 		id := vars["id"]
